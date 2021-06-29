@@ -55,6 +55,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 uint32_t timeIt_GetCounter_us(void);
 void timeIt_Start(void);
@@ -102,22 +103,32 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
+  MX_TIM10_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_UART_Transmit(&huart1, (uint8_t *)"startuje init\n\r", 15, 50);
-  uint8_t div_tab[100] = {0};
+  deviceList_sendToTerminal();
 
-  uint8_t wynik =(uint8_t)vl53l0x_Init(0);
-  HAL_UART_Transmit(&huart1, (uint8_t *)"ruszyło\n\r", 9, 50);
-  uint16_t mesure_score = 0;
+  htim1.Instance->CCR1 = 150;
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  __HAL_TIM_CLEAR_FLAG(&htim10, TIM_FLAG_UPDATE);
+  HAL_TIM_Base_Start_IT(&htim10);
+  //todo: nie zgłasza przerwań od przepelnienia channel2
+
   //HAL_TIM_Base_Start(&htim2);
  // uint32_t counter_val = 0;
  // float convert = 0.0;
+  HAL_UART_Transmit(&huart1, (uint8_t *)"startuje init\n\r", 15, 50);
+  uint8_t div_tab[100] = {0};
+  vl53l0x_Init(0);
+  HAL_UART_Transmit(&huart1, (uint8_t *)"ruszyło\n\r", 9, 50);
+  uint16_t mesure_score = 0;
   char graphic_value[70] = {0};
   uint32_t graphic_len =0;
   bool dir = 0;
@@ -142,6 +153,7 @@ int main(void)
 	  //timeIt_Start();
 	  //convert = (counter_val/1000.0);
 	  //counter_val = timeIt_GetCounter_us();
+
 	  sprintf((char *)div_tab, "graficznie: %s\n\r", graphic_value);
 	  HAL_UART_Transmit(&huart1, div_tab, graphic_len+15, 10);
 
@@ -214,7 +226,23 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* TIM1_UP_TIM10_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM1_UP_TIM10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
+}
+
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+
+		HAL_GPIO_TogglePin(vl53l0x_POWER_GPIO_Port, vl53l0x_POWER_Pin);
+
+}
 
 void timeIt_Start(void){
 	__HAL_TIM_ENABLE(&htim2);
@@ -225,7 +253,7 @@ uint32_t timeIt_GetCounter_us(void){
 	uint32_t temp;
 	__HAL_TIM_DISABLE(&htim2);
 	temp = htim2.Instance->CNT;
-	//reset value todo: mabe put reste value in start?
+	//reset value todo: maybe put reset value in start?
 	htim2.Instance->CNT = 0;
 	htim2.State = HAL_TIM_STATE_READY;
 	return temp;
