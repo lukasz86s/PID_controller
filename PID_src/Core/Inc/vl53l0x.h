@@ -2,7 +2,7 @@
  * vl53l0x.h
  *
  *  Created on: Jun 18, 2021
- *      Author: fet
+ *
  */
 
 #ifndef INC_VL53L0X_H_

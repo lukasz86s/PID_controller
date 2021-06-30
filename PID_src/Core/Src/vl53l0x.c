@@ -2,7 +2,7 @@
  * vl53l0x.c
  *
  *  Created on: Jun 18, 2021
- *      Author: fet
+ *
  */
 #include "vl53l0x.h"
 #include <stdio.h>
@@ -12,9 +12,9 @@ uint16_t ioTimeout = 0; // if timeout == 0 is off
 uint32_t g_measTimBudUs;
 
 I2C_HandleTypeDef *i2c_1 = &hi2c1;;
-
-HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Write)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Write ;
-HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Read)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Read ;
+//todo: remove hit2c from func , create file to register sending func
+HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Write)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Write;
+HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Read)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Read;
 
 // functions
 
@@ -101,6 +101,7 @@ void vl53l0x_I2C_Read_MultiReg(uint8_t addr, uint8_t *pData, uint8_t count){
 uint8_t init_stop_var;		// read in intin used when starting measurment
 /*public methods*/
 bool vl53l0x_Init(bool io_2v8){
+
 
 	if(io_2v8){
 		vl53l0x_I2C_Write_Reg8(VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV,

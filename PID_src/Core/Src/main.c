@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include "dwt_Delay.h"
 #include "vl53l0x.h"
+#include "measure_time.h"
 
 /* USER CODE END Includes */
 
@@ -57,8 +58,8 @@
 void SystemClock_Config(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-uint32_t timeIt_GetCounter_us(void);
-void timeIt_Start(void);
+
+
 // only for work delete in the end
 void checkDev_sendToTerminal(uint8_t addr);
 void deviceList_sendToTerminal(void);
@@ -153,7 +154,7 @@ int main(void)
 	  //timeIt_Start();
 	  //convert = (counter_val/1000.0);
 	  //counter_val = timeIt_GetCounter_us();
-
+	  //sprintf((char *)div_tab, "graficznie: %ld\n\r", timeIt_GetCounter_us());
 	  sprintf((char *)div_tab, "graficznie: %s\n\r", graphic_value);
 	  HAL_UART_Transmit(&huart1, div_tab, graphic_len+15, 10);
 
@@ -239,25 +240,10 @@ static void MX_NVIC_Init(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-
-		HAL_GPIO_TogglePin(vl53l0x_POWER_GPIO_Port, vl53l0x_POWER_Pin);
-
+	appendTimeCounter();
 }
 
-void timeIt_Start(void){
-	__HAL_TIM_ENABLE(&htim2);
-	htim2.State = HAL_TIM_STATE_BUSY;
-}
 
-uint32_t timeIt_GetCounter_us(void){
-	uint32_t temp;
-	__HAL_TIM_DISABLE(&htim2);
-	temp = htim2.Instance->CNT;
-	//reset value todo: maybe put reset value in start?
-	htim2.Instance->CNT = 0;
-	htim2.State = HAL_TIM_STATE_READY;
-	return temp;
-}
 
 // function to remove after end project//-----------------------------------------------------------//
 void checkDev_sendToTerminal(uint8_t addr){
