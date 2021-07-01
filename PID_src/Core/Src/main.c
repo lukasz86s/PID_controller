@@ -153,10 +153,10 @@ int main(void)
 
 	  measure_score = vl53l0x_ReadRangeSingleMillimeters(0);
 	  //second measure
-	  //measure_score += vl53l0x_ReadRangeSingleMillimeters(0);
+	  measure_score += vl53l0x_ReadRangeSingleMillimeters(0);
 	  //mean
 
-	  //measure_score /= 2;
+	  measure_score /= 2;
 
 	  err = target - measure_score;
 
@@ -168,8 +168,8 @@ int main(void)
 	  //else dir = 0;
 
 	  measured_time_s = (timeIt_GetCounter_us()/1000000.0);
-	  PID = get_PID(err, measured_time_s, 0.1, 0.2, 0.2);
-	  htim1.Instance->CCR1 = 150+(PID/40);
+	  PID = get_PID(err, measured_time_s, 1.2, 0.4, 0.8);
+	  htim1.Instance->CCR1 = 150 + (PID/10);
 	  //DWT_Delay_us_(1000000);
 
 	  timeIt_Start_us();

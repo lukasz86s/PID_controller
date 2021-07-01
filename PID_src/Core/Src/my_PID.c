@@ -18,7 +18,10 @@ float integral(float err, float time_s, float K){
 
 }
 float derivative(float err, float time_s, float K){
-	return K*(err/time_s);
+	static float prev_err;
+	float temp = K*((err - prev_err)/time_s);
+	prev_err = err;
+	return temp;
 }
 
 float get_PID(float err, float time_s, float Kp , float Ki, float Kd){

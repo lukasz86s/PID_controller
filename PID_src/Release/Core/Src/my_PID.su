@@ -1,4 +1,4 @@
 my_PID.c:10:7:proportional	16	static
 my_PID.c:14:7:integral	24	static
-my_PID.c:20:7:derivative	24	static
-my_PID.c:24:7:get_PID	40	static
+my_PID.c:20:7:derivative	32	static
+my_PID.c:27:7:get_PID	40	static
