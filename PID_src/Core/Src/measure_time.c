@@ -24,7 +24,8 @@ void appendTimeCounter(void){
 }
 void startMesure_ms(uint8_t nr_tim){
 	switch(nr_tim){
-	case 1:
+	case vl53l0x_tim:
+		tim1 = 0;
 		Status.t1 = 1;
 		break;
 	case 2:
@@ -34,36 +35,37 @@ void startMesure_ms(uint8_t nr_tim){
 }
 uint32_t getMesure_ms(uint8_t nr_tim){
 	switch(nr_tim){
-	case 1:
+	case vl53l0x_tim:
 		return tim1;
 	}
 	return 0;
 }
 uint32_t stopMesure_ms(uint8_t nr_tim){
-	uint32_t temp;
 	switch(nr_tim){
-	case 1:
+	case vl53l0x_tim:
 		{
 		Status.t1 = 0;
-		temp = tim1;
-		tim1 = 0;
-		return temp;
+		return tim1;
 		}
 	}
 	return 0;
 }
 
 void timeIt_Start_us(void){
-	__HAL_TIM_ENABLE(&htim2);
+	// reset counter value
+	htim2.Instance->CNT = 0;
+	//set state
 	htim2.State = HAL_TIM_STATE_BUSY;
+	//start count
+	__HAL_TIM_ENABLE(&htim2);
 }
 
 uint32_t timeIt_GetCounter_us(void){
-	uint32_t temp;
+	// stop count
 	__HAL_TIM_DISABLE(&htim2);
-	temp = htim2.Instance->CNT;
-	//reset value todo: maybe put reset value in start?
-	htim2.Instance->CNT = 0;
+	// set status
 	htim2.State = HAL_TIM_STATE_READY;
-	return temp;
+	//return counter value
+	return htim2.Instance->CNT;
+
 }

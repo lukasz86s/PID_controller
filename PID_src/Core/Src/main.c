@@ -31,6 +31,7 @@
 #include "dwt_Delay.h"
 #include "vl53l0x.h"
 #include "measure_time.h"
+#include "my_PID.h"
 
 /* USER CODE END Includes */
 
@@ -124,49 +125,66 @@ int main(void)
 
   //HAL_TIM_Base_Start(&htim2);
  // uint32_t counter_val = 0;
- // float convert = 0.0;
-  HAL_UART_Transmit(&huart1, (uint8_t *)"startuje init\n\r", 15, 50);
+  float measured_time_s = 0.0;
   uint8_t div_tab[100] = {0};
-  vl53l0x_Init(0);
-  HAL_UART_Transmit(&huart1, (uint8_t *)"ruszyło\n\r", 9, 50);
-  uint16_t mesure_score = 0;
-  char graphic_value[70] = {0};
-  uint32_t graphic_len =0;
+  HAL_UART_Transmit(&huart1, (uint8_t *)"startuje init\n\r", 15, 50);
+  // power on
+  HAL_GPIO_WritePin(vl53l0x_POWER_GPIO_Port, vl53l0x_POWER_Pin, RESET);
+  // wait 30 ms
+  DWT_Delay_us_(30000);
+  // init vl53l0x
+  uint8_t init = vl53l0x_Init(0);
+  sprintf((char *)div_tab, "init: %d\n\r", init);
+  HAL_UART_Transmit(&huart1, div_tab, 10, 50);
+  uint16_t measure_score = 0;
   bool dir = 0;
+  float PID = 0.0;
+  //float P, I, D;
+  // err value
+  float err;
+  // target to get in mm
+  float target = 120.0;
+  // servo power on
+  HAL_GPIO_WritePin(SERVO_POWER_GPIO_Port, SERVO_POWER_Pin, RESET);
+  // start first measure time
+  timeIt_Start_us();
   while (1)
   {
 
-	  mesure_score = vl53l0x_ReadRangeSingleMillimeters(0);
-	  //second mesure
-	  mesure_score += vl53l0x_ReadRangeSingleMillimeters(0);
+	  measure_score = vl53l0x_ReadRangeSingleMillimeters(0);
+	  //second measure
+	  //measure_score += vl53l0x_ReadRangeSingleMillimeters(0);
 	  //mean
-	  mesure_score /= 2;
 
-	  sprintf((char *)div_tab, "wynik pomiaru : %d \n\r", mesure_score);
+	  //measure_score /= 2;
 
-	 // HAL_UART_Transmit(&huart1, div_tab, 30, 10);
-	  graphic_len = (mesure_score/5);
-	  for(int i = 0 ; i < 70; i++){
-		  if(i < graphic_len)graphic_value[i] = '=';
-		  else graphic_value[i] = 0;
-	  }
+	  err = target - measure_score;
 
-	  //timeIt_Start();
-	  //convert = (counter_val/1000.0);
-	  //counter_val = timeIt_GetCounter_us();
-	  //sprintf((char *)div_tab, "graficznie: %ld\n\r", timeIt_GetCounter_us());
-	  sprintf((char *)div_tab, "graficznie: %s\n\r", graphic_value);
-	  HAL_UART_Transmit(&huart1, div_tab, graphic_len+15, 10);
+	  //uint16_t temp = htim1.Instance->CCR1;
+	 // if(temp < 200 && dir ==0) htim1.Instance->CCR1 += 1;
+	 // else dir = 1;
 
-	  DWT_Delay_us_(100000);
+	  //if( temp > 100 && dir == 1)htim1.Instance->CCR1 -= 1;
+	  //else dir = 0;
 
-	  //htim1.Instance->CCR1 =180;
-	  uint16_t temp = htim1.Instance->CCR1;
-	  if(temp < 200 && dir ==0) htim1.Instance->CCR1 += 1;
-	  else dir = 1;
+	  measured_time_s = (timeIt_GetCounter_us()/1000000.0);
+	  PID = get_PID(err, measured_time_s, 0.1, 0.2, 0.2);
+	  htim1.Instance->CCR1 = 150+(PID/40);
+	  //DWT_Delay_us_(1000000);
 
-	  if( temp > 100 && dir == 1)htim1.Instance->CCR1 -= 1;
-	  else dir = 0;
+	  timeIt_Start_us();
+
+	  //getting  P , I, D values
+	 // P = proportional(err, 0.1);
+	  //I = integral(err, measured_time_s, 0.1);
+	 // D = derivative(err, measured_time_s, 0.1);
+
+	 // sprintf((char *)div_tab, "P: %f\n\rI: %f\n\rD: %f\n\r", P, I, D);
+
+	  //sprintf((char *)div_tab, "err: %f\n\r ", err);
+	  sprintf((char *)div_tab, "err: %f\n\r ", PID);
+
+	  HAL_UART_Transmit(&huart1, div_tab, 60, 20);
 
     /* USER CODE END WHILE */
 

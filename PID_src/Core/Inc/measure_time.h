@@ -10,6 +10,11 @@
 
 #include "stm32f4xx_hal.h"
 
+enum{
+	vl53l0x_tim,
+	freetim,
+	numberOfTim
+};
 typedef struct _TimeMesureStatus{
 	uint8_t t1 :1;
 	uint8_t t2 :1;

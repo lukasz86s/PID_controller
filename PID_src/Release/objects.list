@@ -3,6 +3,7 @@
 "Core/Src/i2c.o"
 "Core/Src/main.o"
 "Core/Src/measure_time.o"
+"Core/Src/my_PID.o"
 "Core/Src/rtc.o"
 "Core/Src/stm32f4xx_hal_msp.o"
 "Core/Src/stm32f4xx_it.o"

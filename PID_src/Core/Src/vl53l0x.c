@@ -6,9 +6,10 @@
  */
 #include "vl53l0x.h"
 #include <stdio.h>
+#include "measure_time.h"
 
 
-uint16_t ioTimeout = 0; // if timeout == 0 is off
+uint16_t ioTimeout = 45; // if timeout == 0 is off
 uint32_t g_measTimBudUs;
 
 I2C_HandleTypeDef *i2c_1 = &hi2c1;;
@@ -16,6 +17,11 @@ I2C_HandleTypeDef *i2c_1 = &hi2c1;;
 HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Write)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Write;
 HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Read)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Read;
 
+void startTimeout(void){ startMesure_ms(vl53l0x_tim);} ;
+uint32_t getTimeout(void){ return getMesure_ms(vl53l0x_tim); };
+uint32_t stopTimeout(void){ return stopMesure_ms(vl53l0x_tim); };
+
+#define checkTimeoutExpired() (ioTimeout > 0 && (getTimeout() > ioTimeout))
 // functions
 
 /*private func------------------*/
@@ -622,10 +628,15 @@ bool performSingleRefCalibration(uint8_t vhv_init_byte)
 {
   vl53l0x_I2C_Write_Reg8(SYSRANGE_START, 0x01 | vhv_init_byte); // VL53L0X_REG_SYSRANGE_MODE_START_STOP
 
-
+  startTimeout();
   while ((vl53l0x_I2C_Read_Reg8(RESULT_INTERRUPT_STATUS) & 0x07) == 0)
   {
-    // add timeout func
+	   if (checkTimeoutExpired())
+	   {
+	    //  g_isTimeout = true;
+		   stopTimeout();
+	       return false;
+	    }
   }
 
   vl53l0x_I2C_Write_Reg8(SYSTEM_INTERRUPT_CLEAR, 0x01);
@@ -643,12 +654,14 @@ uint16_t vl53l0x_ReadRangeContinuousMillimeters( statInfo_t *extraStats ) {
   uint8_t tempBuffer[12];
   uint16_t temp;
   //todo: func ->startTimeout();
+  startTimeout();
   while ((vl53l0x_I2C_Read_Reg8(RESULT_INTERRUPT_STATUS) & 0x07) == 0) { // wait for mesure complet
-   // if (checkTimeoutExpired())
-   // {
+   if (checkTimeoutExpired())
+   {
     //  g_isTimeout = true;
-     // return 65535;
-    //}
+	   stopTimeout();
+       return 65535;
+    }
   }
   if( extraStats == 0 ){
     // assumptions: Linearity Corrective Gain is 1000 (default);
@@ -692,13 +705,14 @@ uint16_t vl53l0x_ReadRangeSingleMillimeters( statInfo_t *extraStats ) {
   vl53l0x_I2C_Write_Reg8(0x80, 0x00);
   vl53l0x_I2C_Write_Reg8(SYSRANGE_START, 0x01);
   // "Wait until start bit has been cleared"
-  //todo: function startTimeout();
+  startTimeout();
   while (vl53l0x_I2C_Read_Reg8(SYSRANGE_START) & 0x01){
-	  //todo: timeout
-    //if (checkTimeoutExpired()){
-     // g_isTimeout = true;
-      //return 65535;
-    //}
+    if (checkTimeoutExpired())
+    {
+    	//g_isTimeout = true;
+    	stopTimeout();
+    	return 65535;
+    }
   }
   return vl53l0x_ReadRangeContinuousMillimeters( extraStats );
 }
