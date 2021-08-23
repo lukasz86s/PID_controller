@@ -1,0 +1,35 @@
+[33mcommit 2793bab5f19bdbabfec700cada33ae523bd54e84[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Łukasz Surmiak <fetts@o2.pl>
+Date:   Thu Jul 1 23:39:45 2021 +0200
+
+    corrected mistake in derivative function
+
+[33mcommit 60065e27e94e146eb887fc13dc119b335b5eeebd[m
+Author: Łukasz Surmiak <fetts@o2.pl>
+Date:   Thu Jul 1 19:16:22 2021 +0200
+
+    add PID controller , add timeout for vl53l0x sensor
+
+[33mcommit 8e67dde310dc744003a16214ee0dc2c217cc5f6d[m
+Author: Łukasz Surmiak <fetts@o2.pl>
+Date:   Wed Jun 30 11:49:19 2021 +0200
+
+    add mesure_ms function , move mesure time func to separete file
+
+[33mcommit 12ee6818fb4bdddde18aeebd1cf3af836d1eb09d[m
+Author: Łukasz Surmiak <fetts@o2.pl>
+Date:   Tue Jun 29 19:09:32 2021 +0200
+
+    add tim10 for vl53l0x_timeout count, add servo and cl53l0x power pins
+
+[33mcommit c500c2c6194a4e182be4857c45ee4c7c17384074[m
+Author: Łukasz Surmiak <fetts@o2.pl>
+Date:   Mon Jun 28 14:12:17 2021 +0200
+
+    add stl
+
+[33mcommit 05967fed51967f1288a1277e87da37b0ebaee708[m
+Author: Łukasz Surmiak <fetts@o2.pl>
+Date:   Mon Jun 28 14:02:07 2021 +0200
+
+    first version

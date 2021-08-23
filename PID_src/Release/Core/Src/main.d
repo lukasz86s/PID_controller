@@ -34,7 +34,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/i2c.h ../Core/Inc/main.h ../Core/Inc/rtc.h ../Core/Inc/tim.h \
  ../Core/Inc/usart.h ../Core/Inc/gpio.h ../Core/Inc/dwt_Delay.h \
  ../Core/Inc/vl53l0x.h ../Core/Inc/i2c.h ../Core/Inc/measure_time.h \
- ../Core/Inc/my_PID.h
+ ../Core/Inc/my_PID.h ../Core/Src/../LCD_hd44780/LCD_init.h
 
 ../Core/Inc/main.h:
 
@@ -123,3 +123,5 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/measure_time.h:
 
 ../Core/Inc/my_PID.h:
+
+../Core/Src/../LCD_hd44780/LCD_init.h:

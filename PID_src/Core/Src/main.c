@@ -32,6 +32,7 @@
 #include "vl53l0x.h"
 #include "measure_time.h"
 #include "my_PID.h"
+#include "../LCD_hd44780/LCD_init.h"
 
 /* USER CODE END Includes */
 
@@ -42,6 +43,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define REPEAT_MEASURE 2
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,7 +54,34 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+enum _menu{
+		START,
+		TARGET,
+		KP,
+		KI,
+		KD,
+		MENU_SIZE
+	};
+char * menu_text[MENU_SIZE] = {"Start", "Target", "Kp", "Ki", "Kd"};
 
+char lcd_text[17] = {"0\0"};
+
+volatile uint16_t measure_score = 0;
+
+float PID = 0.0;
+
+float Kp = 1.4;
+float Ki = 1.0;
+float Kd = 0.9;
+
+float err;
+
+float measured_time_s = 0.0;
+// target to get in mm
+float target = 120.0;
+
+uint32_t enc_score = 0;
+uint32_t enc_score_old = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,6 +125,7 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   DWT_Delay_Init();
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -106,85 +136,129 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM10_Init();
+  MX_TIM3_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-
+  init_lcd(DWT_Delay_us_);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  deviceList_sendToTerminal();
+  //deviceList_sendToTerminal();
 
+  // servo initial value for leveling
   htim1.Instance->CCR1 = 150;
+  // start PWM to control servo
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
   __HAL_TIM_CLEAR_FLAG(&htim10, TIM_FLAG_UPDATE);
   HAL_TIM_Base_Start_IT(&htim10);
+  //start channels 1 and 2 in timer3 to work with encoder
+  HAL_TIM_IC_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_IC_Start(&htim3, TIM_CHANNEL_2);
   //todo: nie zgłasza przerwań od przepelnienia channel2
 
   //HAL_TIM_Base_Start(&htim2);
- // uint32_t counter_val = 0;
-  float measured_time_s = 0.0;
-  uint8_t div_tab[100] = {0};
-  HAL_UART_Transmit(&huart1, (uint8_t *)"startuje init\n\r", 15, 50);
+
+  //uint8_t div_tab[100] = {0};
+ // HAL_UART_Transmit(&huart1, (uint8_t *)"startuje init\n\r", 15, 50);
+  lcd_str("start vl53l0x");
   // power on
   HAL_GPIO_WritePin(vl53l0x_POWER_GPIO_Port, vl53l0x_POWER_Pin, RESET);
-  // wait 30 ms
-  DWT_Delay_us_(30000);
+  // wait 35 ms
+  DWT_Delay_us_(35000);
   // init vl53l0x
   uint8_t init = vl53l0x_Init(0);
-  sprintf((char *)div_tab, "init: %d\n\r", init);
-  HAL_UART_Transmit(&huart1, div_tab, 10, 50);
-  uint16_t measure_score = 0;
-  bool dir = 0;
-  float PID = 0.0;
-  //float P, I, D;
-  // err value
-  float err;
-  // target to get in mm
-  float target = 120.0;
+  //sprintf((char *)div_tab, "init: %d\n\r", init);
+  //HAL_UART_Transmit(&huart1, div_tab, 10, 50);
+  sprintf((char*)lcd_text, "wynik init: %d", init);
+  lcd_cls();
+  lcd_str(lcd_text);
+  DWT_Delay_us_(1000000);
   // servo power on
   HAL_GPIO_WritePin(SERVO_POWER_GPIO_Port, SERVO_POWER_Pin, RESET);
+
+  sprintf((char*)lcd_text, menu_text[START]);
+  lcd_cls();
+  lcd_str(lcd_text);
+
   // start first measure time
   timeIt_Start_us();
+
   while (1)
   {
+	  measure_score = 0;
+	 for(uint8_t i = 0; i < REPEAT_MEASURE; i++)
+	  {
+		 measure_score += vl53l0x_ReadRangeSingleMillimeters(0);
+	  }
 
-	  measure_score = vl53l0x_ReadRangeSingleMillimeters(0);
-	  //second measure
-	  measure_score += vl53l0x_ReadRangeSingleMillimeters(0);
-	  //mean
-
-	  measure_score /= 2;
+	  // mean
+	  measure_score /= REPEAT_MEASURE;
 
 	  err = target - measure_score;
 
-	  //uint16_t temp = htim1.Instance->CCR1;
-	 // if(temp < 200 && dir ==0) htim1.Instance->CCR1 += 1;
-	 // else dir = 1;
-
-	  //if( temp > 100 && dir == 1)htim1.Instance->CCR1 -= 1;
-	  //else dir = 0;
-
+	  // get time in second
 	  measured_time_s = (timeIt_GetCounter_us()/1000000.0);
-	  PID = get_PID(err, measured_time_s, 1.2, 0.4, 0.8);
-	  htim1.Instance->CCR1 = 150 + (PID/10);
+
+	  // get pid value
+	  PID = get_PID(err, measured_time_s, Kp, Ki, Kd);
+	  htim1.Instance->CCR1 = 140 + (PID/10);
 	  //DWT_Delay_us_(1000000);
 
 	  timeIt_Start_us();
 
-	  //getting  P , I, D values
-	 // P = proportional(err, 0.1);
-	  //I = integral(err, measured_time_s, 0.1);
-	 // D = derivative(err, measured_time_s, 0.1);
+	  enc_score = htim3.Instance->CNT;
+	  //simple menu
+	  if(enc_score != enc_score_old){
+		  lcd_cls();
+		  switch((enc_score/4)%MENU_SIZE){
+		  case START:
+			  sprintf((char*)lcd_text, menu_text[START]);
+			  lcd_str(lcd_text);
+			  break;
+		  case TARGET:
+			  sprintf((char*)lcd_text, menu_text[TARGET]);
+			  lcd_str(lcd_text);
+			  lcd_locate(1, 0);
+			  sprintf((char*)lcd_text, "%f", target);
+			  lcd_str(lcd_text);
+			  break;
+		  case KP:
+			  sprintf((char*)lcd_text, menu_text[KP]);
+			  lcd_str(lcd_text);
+			  lcd_locate(1, 0);
+			  sprintf((char*)lcd_text, "%f", Kp);
+			  lcd_str(lcd_text);
+			  break;
+		  case KI:
+			  sprintf((char*)lcd_text, menu_text[KI]);
+			  lcd_str(lcd_text);
+			  lcd_locate(1, 0);
+			  sprintf((char*)lcd_text, "%f", Ki);
+			  lcd_str(lcd_text);
+			  break;
+		  case KD:
+			  sprintf((char*)lcd_text, menu_text[KD]);
+			  lcd_str(lcd_text);
+			  lcd_locate(1, 0);
+			  sprintf((char*)lcd_text, "%f", Kd);
+			  lcd_str(lcd_text);
+			  break;
+		  }
+		  lcd_locate(0, 0);
+	  }
+	  enc_score_old = enc_score;
+	  //lcd_locate(0, 0);
 
-	 // sprintf((char *)div_tab, "P: %f\n\rI: %f\n\rD: %f\n\r", P, I, D);
+	  // sprintf((char *)div_tab, "P: %f\n\rI: %f\n\rD: %f\n\r", P, I, D);
 
 	  //sprintf((char *)div_tab, "err: %f\n\r ", err);
-	  sprintf((char *)div_tab, "err: %f\n\r ", PID);
+	  //sprintf((char*)div_tab, "err: %d\n\r ", measure_score);
 
-	  HAL_UART_Transmit(&huart1, div_tab, 60, 20);
+	  //HAL_UART_Transmit(&huart1, div_tab, 30, 20);
 
     /* USER CODE END WHILE */
 
