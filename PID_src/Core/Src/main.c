@@ -28,6 +28,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <stdlib.h>
 #include "dwt_Delay.h"
 #include "vl53l0x.h"
 #include "measure_time.h"
@@ -62,6 +63,12 @@ enum _menu{
 		KD,
 		MENU_SIZE
 	};
+struct{
+	uint16_t score;
+	uint16_t score_old;
+	uint16_t score_stored;
+	uint16_t button :1;
+}encoder;
 char * menu_text[MENU_SIZE] = {"Start", "Target", "Kp", "Ki", "Kd"};
 
 char lcd_text[17] = {"0\0"};
@@ -73,6 +80,7 @@ float PID = 0.0;
 float Kp = 1.4;
 float Ki = 1.0;
 float Kd = 0.9;
+uint8_t pid_status = 0;
 
 float err;
 
@@ -80,8 +88,7 @@ float measured_time_s = 0.0;
 // target to get in mm
 float target = 120.0;
 
-uint32_t enc_score = 0;
-uint32_t enc_score_old = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -209,48 +216,107 @@ int main(void)
 	  //DWT_Delay_us_(1000000);
 
 	  timeIt_Start_us();
+	  if(!HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin)){
+		  static uint8_t button;
+		  if(!HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin) && button){
+			  encoder.button ^= 1;
+		  	  button = 0;
+		  }else{
+		  button = 1;
+		  }
+	  }
 
-	  enc_score = htim3.Instance->CNT;
+	  encoder.score = htim3.Instance->CNT;
+
 	  //simple menu
-	  if(enc_score != enc_score_old){
+	  // if encoder has shifted
+	  if(encoder.score != encoder.score_old){
+		  int32_t temp;
+		  // if button is 1 then change positon of menu, else change value of selected positon
+		  if(!encoder.button){
+			  // if encoder was used to change valuse of selected positon, reset it to positon value
+			  if(abs(encoder.score_stored - encoder.score) > 4)
+				  htim3.Instance->CNT = encoder.score_stored;
+			  else
+				  encoder.score_stored = encoder.score;
+		  }
+		  else{
+			  temp =  encoder.score - encoder.score_old;
+		  }
+
+		  lcd_locate(0, 0);
 		  lcd_cls();
-		  switch((enc_score/4)%MENU_SIZE){
+		  switch((encoder.score_stored/4)%MENU_SIZE){
 		  case START:
 			  sprintf((char*)lcd_text, menu_text[START]);
+			  lcd_str(lcd_text);
+			  lcd_locate(1, 0);
+			  if(encoder.button){
+				  if(abs(temp) >= 4)
+					  pid_status ^= 1;
+			  }
+			  if(pid_status == 0)
+				  sprintf((char*)lcd_text, "OFF");
+			  else
+				  sprintf((char*)lcd_text, "ON");
 			  lcd_str(lcd_text);
 			  break;
 		  case TARGET:
 			  sprintf((char*)lcd_text, menu_text[TARGET]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%f", target);
+			  sprintf((char*)lcd_text, "%.0f", target);
 			  lcd_str(lcd_text);
+			  if(encoder.button){
+				  if(temp >= 4)
+					  target += 1.0;
+				  else if(temp <= -4)
+					  target -= 1.0;
+			  }
 			  break;
 		  case KP:
 			  sprintf((char*)lcd_text, menu_text[KP]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%f", Kp);
+			  sprintf((char*)lcd_text, "%.1f", Kp);
+			  if(encoder.button){
+				  if(temp >= 4)
+					  Kp += 0.1;
+				  else if(temp <= -4)
+					  Kp -= 0.1;
+			  }
 			  lcd_str(lcd_text);
 			  break;
 		  case KI:
 			  sprintf((char*)lcd_text, menu_text[KI]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%f", Ki);
+			  sprintf((char*)lcd_text, "%.1f", Ki);
+			  if(encoder.button){
+				  if(temp >= 4)
+					  Ki += 0.1;
+				  else if(temp <= -4)
+					  Ki -= 0.1;
+			  }
 			  lcd_str(lcd_text);
 			  break;
 		  case KD:
 			  sprintf((char*)lcd_text, menu_text[KD]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%f", Kd);
+			  sprintf((char*)lcd_text, "%.1f", Kd);
+			  if(encoder.button){
+				  if(temp >= 4)
+					  Kd += 0.1;
+				  else if(temp <= -4)
+					  Kd -= 0.1;
+			  }
 			  lcd_str(lcd_text);
 			  break;
 		  }
-		  lcd_locate(0, 0);
+
 	  }
-	  enc_score_old = enc_score;
+	  encoder.score_old = encoder.score;
 	  //lcd_locate(0, 0);
 
 	  // sprintf((char *)div_tab, "P: %f\n\rI: %f\n\rD: %f\n\r", P, I, D);

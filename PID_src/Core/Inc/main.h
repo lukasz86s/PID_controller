@@ -62,6 +62,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SERVO_POWER_Pin GPIO_PIN_10
 #define SERVO_POWER_GPIO_Port GPIOB
+#define BUTTON_Pin GPIO_PIN_5
+#define BUTTON_GPIO_Port GPIOB
 #define vl53l0x_POWER_Pin GPIO_PIN_9
 #define vl53l0x_POWER_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */

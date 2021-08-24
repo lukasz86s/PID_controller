@@ -15,16 +15,16 @@
 #define USE_RW 0
 // select port and pins to control LCD
 #define LCD_D7_PORT B
-#define LCD_D7 6
+#define LCD_D7 4
 
 #define LCD_D6_PORT B
-#define LCD_D6 5
+#define LCD_D6 3
 
-#define LCD_D5_PORT B
-#define LCD_D5 4
+#define LCD_D5_PORT A
+#define LCD_D5 15
 
-#define LCD_D4_PORT B
-#define LCD_D4 3
+#define LCD_D4_PORT A
+#define LCD_D4 12
 
 #define LCD_RS_PORT A
 #define LCD_RS 1
@@ -32,8 +32,8 @@
 #define LCD_E_PORT A
 #define LCD_E 0
 
-#define LCD_RW_PORT A
-#define LCD_RW 15
+#define LCD_RW_PORT B
+#define LCD_RW 6
 
 // --------- functions
 void init_lcd(void (*delay_us)(uint32_t us) );
