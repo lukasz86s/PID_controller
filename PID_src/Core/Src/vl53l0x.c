@@ -17,9 +17,9 @@ I2C_HandleTypeDef *i2c_1 = &hi2c1;;
 HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Write)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Write;
 HAL_StatusTypeDef (*VL53L0X_REG_I2C_Mem_Read)(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout) = HAL_I2C_Mem_Read;
 
-void startTimeout(void){ startMesure_ms(vl53l0x_tim);} ;
-uint32_t getTimeout(void){ return getMesure_ms(vl53l0x_tim); };
-uint32_t stopTimeout(void){ return stopMesure_ms(vl53l0x_tim); };
+void startTimeout(void){ startMesure_ms(VL53L0X_TIM);} ;
+uint32_t getTimeout(void){ return getMesure_ms(VL53L0X_TIM); };
+uint32_t stopTimeout(void){ return stopMesure_ms(VL53L0X_TIM); };
 
 #define checkTimeoutExpired() (ioTimeout > 0 && (getTimeout() > ioTimeout))
 // functions

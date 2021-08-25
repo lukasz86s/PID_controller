@@ -1,6 +1,8 @@
-measure_time.c:19:6:appendTimeCounter	4	static
-measure_time.c:25:6:startMesure_ms	16	static
-measure_time.c:36:10:getMesure_ms	16	static
-measure_time.c:43:10:stopMesure_ms	16	static
-measure_time.c:54:6:timeIt_Start_us	4	static
-measure_time.c:63:10:timeIt_GetCounter_us	4	static
+measure_time.c:20:6:appendTimeCounter	8	static
+measure_time.c:31:6:startMesure_ms	16	static
+measure_time.c:46:10:getMesure_ms	16	static
+measure_time.c:60:10:stopMesure_ms	16	static
+measure_time.c:75:9:getMeasure_status	16	static
+measure_time.c:91:6:timeIt_Start_us	4	static
+measure_time.c:100:10:timeIt_GetCounter_us	4	static
+measure_time.c:109:6:measure_time_callback_register	16	static

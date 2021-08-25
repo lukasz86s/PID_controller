@@ -67,7 +67,7 @@ struct{
 	uint16_t score;
 	uint16_t score_old;
 	uint16_t score_stored;
-	uint16_t button :1;
+	volatile uint16_t button :1;
 }encoder;
 char * menu_text[MENU_SIZE] = {"Start", "Target", "Kp", "Ki", "Kd"};
 
@@ -95,7 +95,7 @@ float target = 120.0;
 void SystemClock_Config(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-
+void button_handler(void);
 
 // only for work delete in the end
 void checkDev_sendToTerminal(uint8_t addr);
@@ -190,7 +190,8 @@ int main(void)
   sprintf((char*)lcd_text, menu_text[START]);
   lcd_cls();
   lcd_str(lcd_text);
-
+  // registering the function handler of a click button
+  measure_time_callback_register(button_handler);
   // start first measure time
   timeIt_Start_us();
 
@@ -210,24 +211,17 @@ int main(void)
 	  // get time in second
 	  measured_time_s = (timeIt_GetCounter_us()/1000000.0);
 
+	  if(pid_status){
 	  // get pid value
 	  PID = get_PID(err, measured_time_s, Kp, Ki, Kd);
 	  htim1.Instance->CCR1 = 140 + (PID/10);
-	  //DWT_Delay_us_(1000000);
 
-	  timeIt_Start_us();
-	  if(!HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin)){
-		  static uint8_t button;
-		  if(!HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin) && button){
-			  encoder.button ^= 1;
-		  	  button = 0;
-		  }else{
-		  button = 1;
-		  }
 	  }
+	  timeIt_Start_us();
 
 	  encoder.score = htim3.Instance->CNT;
-
+	  char test =' ';
+	  if(encoder.button)test = '<'; else test = ' ';
 	  //simple menu
 	  // if encoder has shifted
 	  if(encoder.score != encoder.score_old){
@@ -255,10 +249,11 @@ int main(void)
 				  if(abs(temp) >= 4)
 					  pid_status ^= 1;
 			  }
+
 			  if(pid_status == 0)
-				  sprintf((char*)lcd_text, "OFF");
+				  sprintf((char*)lcd_text, "OFF%c", test);
 			  else
-				  sprintf((char*)lcd_text, "ON");
+				  sprintf((char*)lcd_text, "ON%c",test);
 			  lcd_str(lcd_text);
 			  break;
 		  case TARGET:
@@ -427,6 +422,23 @@ void deviceList_sendToTerminal(void){
 		  }
 
 	  }
+}
+void button_handler(void){
+	static uint8_t timeout;
+	if(!timeout){
+		  if(!HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin) && !getMeasure_status(BUTTON_TIM)){
+			  startMesure_ms(BUTTON_TIM);
+		  }
+		  if(getMesure_ms(BUTTON_TIM) > 50){
+			  if(!HAL_GPIO_ReadPin(BUTTON_GPIO_Port, BUTTON_Pin)){
+				  encoder.button ^=1;
+				  stopMesure_ms(BUTTON_TIM);
+				  timeout = 250;
+				}
+			}
+	}else{
+		timeout--;
+	}
 }
 //---------------------------------------------------------------------------------------------------//
 /* USER CODE END 4 */

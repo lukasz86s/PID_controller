@@ -11,18 +11,19 @@
 #include "stm32f4xx_hal.h"
 
 enum{
-	vl53l0x_tim,
-	freetim,
+	VL53L0X_TIM,
+	BUTTON_TIM,
 	numberOfTim
 };
 typedef struct _TimeMesureStatus{
-	uint8_t t1 :1;
-	uint8_t t2 :1;
-	uint8_t t3 :1;
-	uint8_t t4 :1;
+	volatile uint8_t t0 :1;
+	volatile uint8_t t1 :1;
+	volatile uint8_t t2 :1;
+	volatile uint8_t t3 :1;
 
 }TimeMesureStatus;
-
+//
+typedef void callback_func(void);
 //functions
 /* add this func to you timer callback IT (period 1ms) */
 void appendTimeCounter(void);
@@ -34,7 +35,8 @@ uint32_t getMesure_ms(uint8_t nr_tim);
 uint32_t timeIt_GetCounter_us(void);
 // start measure time in us
 void timeIt_Start_us(void);
-
+void measure_time_callback_register(callback_func *func);
+uint8_t getMeasure_status(uint8_t nr_tim);
 
 
 #endif /* INC_MEASURE_TIME_H_ */
