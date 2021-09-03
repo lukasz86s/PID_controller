@@ -45,6 +45,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define REPEAT_MEASURE 2
+#define MIN_SCORE_TO_MOVE 3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -65,8 +66,9 @@ enum _menu{
 	};
 struct{
 	uint16_t score;
-	uint16_t score_old;
+	uint16_t score_previous;
 	uint16_t score_stored;
+	uint16_t button_previous;
 	volatile uint16_t button :1;
 }encoder;
 char * menu_text[MENU_SIZE] = {"Start", "Target", "Kp", "Ki", "Kd"};
@@ -112,8 +114,10 @@ void deviceList_sendToTerminal(void);
   * @brief  The application entry point.
   * @retval int
   */
+
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -190,6 +194,9 @@ int main(void)
   sprintf((char*)lcd_text, menu_text[START]);
   lcd_cls();
   lcd_str(lcd_text);
+  lcd_locate(1, 0);
+  sprintf((char*)lcd_text, "OFF");
+  lcd_str(lcd_text);
   // registering the function handler of a click button
   measure_time_callback_register(button_handler);
   // start first measure time
@@ -222,9 +229,10 @@ int main(void)
 	  encoder.score = htim3.Instance->CNT;
 	  char test =' ';
 	  if(encoder.button)test = '<'; else test = ' ';
+
 	  //simple menu
 	  // if encoder has shifted
-	  if(encoder.score != encoder.score_old){
+	  if(encoder.score != encoder.score_previous || encoder.button != encoder.button_previous){
 		  int32_t temp;
 		  // if button is 1 then change positon of menu, else change value of selected positon
 		  if(!encoder.button){
@@ -235,7 +243,7 @@ int main(void)
 				  encoder.score_stored = encoder.score;
 		  }
 		  else{
-			  temp =  encoder.score - encoder.score_old;
+			  temp =  encoder.score - encoder.score_previous;
 		  }
 
 		  lcd_locate(0, 0);
@@ -246,26 +254,26 @@ int main(void)
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
 			  if(encoder.button){
-				  if(abs(temp) >= 4)
+				  if(abs(temp) >= MIN_SCORE_TO_MOVE)
 					  pid_status ^= 1;
 			  }
 
 			  if(pid_status == 0)
-				  sprintf((char*)lcd_text, "OFF%c", test);
+				  sprintf((char*)lcd_text, "OFF%c",test);
 			  else
-				  sprintf((char*)lcd_text, "ON%c",test);
+				  sprintf((char*)lcd_text, "ON%c", test);
 			  lcd_str(lcd_text);
 			  break;
 		  case TARGET:
 			  sprintf((char*)lcd_text, menu_text[TARGET]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%.0f", target);
+			  sprintf((char*)lcd_text, "%.0f%c", target, test);
 			  lcd_str(lcd_text);
 			  if(encoder.button){
-				  if(temp >= 4)
+				  if(temp >= MIN_SCORE_TO_MOVE)
 					  target += 1.0;
-				  else if(temp <= -4)
+				  else if(temp <= -MIN_SCORE_TO_MOVE)
 					  target -= 1.0;
 			  }
 			  break;
@@ -273,11 +281,11 @@ int main(void)
 			  sprintf((char*)lcd_text, menu_text[KP]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%.1f", Kp);
+			  sprintf((char*)lcd_text, "%.1f%c", Kp, test);
 			  if(encoder.button){
-				  if(temp >= 4)
+				  if(temp >= MIN_SCORE_TO_MOVE)
 					  Kp += 0.1;
-				  else if(temp <= -4)
+				  else if(temp <= -MIN_SCORE_TO_MOVE)
 					  Kp -= 0.1;
 			  }
 			  lcd_str(lcd_text);
@@ -286,11 +294,11 @@ int main(void)
 			  sprintf((char*)lcd_text, menu_text[KI]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%.1f", Ki);
+			  sprintf((char*)lcd_text, "%.1f%c", Ki, test);
 			  if(encoder.button){
-				  if(temp >= 4)
+				  if(temp >= MIN_SCORE_TO_MOVE)
 					  Ki += 0.1;
-				  else if(temp <= -4)
+				  else if(temp <= -MIN_SCORE_TO_MOVE)
 					  Ki -= 0.1;
 			  }
 			  lcd_str(lcd_text);
@@ -299,11 +307,11 @@ int main(void)
 			  sprintf((char*)lcd_text, menu_text[KD]);
 			  lcd_str(lcd_text);
 			  lcd_locate(1, 0);
-			  sprintf((char*)lcd_text, "%.1f", Kd);
+			  sprintf((char*)lcd_text, "%.1f%c", Kd, test);
 			  if(encoder.button){
-				  if(temp >= 4)
+				  if(temp >= MIN_SCORE_TO_MOVE)
 					  Kd += 0.1;
-				  else if(temp <= -4)
+				  else if(temp <= -MIN_SCORE_TO_MOVE)
 					  Kd -= 0.1;
 			  }
 			  lcd_str(lcd_text);
@@ -311,7 +319,9 @@ int main(void)
 		  }
 
 	  }
-	  encoder.score_old = encoder.score;
+	  // assigned actual values of buton and conter score
+	  encoder.score_previous = encoder.score;
+	  encoder.button_previous = encoder.button;
 	  //lcd_locate(0, 0);
 
 	  // sprintf((char *)div_tab, "P: %f\n\rI: %f\n\rD: %f\n\r", P, I, D);
